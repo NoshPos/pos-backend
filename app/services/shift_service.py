@@ -45,11 +45,12 @@ async def close_shift(db: AsyncSession, shift: Shift, payload: ShiftClose) -> Sh
     result = await db.execute(order_q)
     total_sales, total_orders = result.one()
 
-    shift.closing_cash = payload.closing_cash
-    shift.total_sales = float(total_sales)
+    closing_cash = Decimal(str(payload.closing_cash))
+    shift.closing_cash = closing_cash
+    shift.total_sales = Decimal(str(total_sales))
     shift.total_orders = int(total_orders)
-    shift.expected_cash = shift.opening_cash + float(total_sales)
-    shift.cash_variance = payload.closing_cash - shift.expected_cash
+    shift.expected_cash = shift.opening_cash + Decimal(str(total_sales))
+    shift.cash_variance = closing_cash - shift.expected_cash
     shift.notes = payload.notes or shift.notes
     shift.status = "closed"
     shift.ended_at = datetime.now(timezone.utc)
