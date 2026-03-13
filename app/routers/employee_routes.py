@@ -8,7 +8,7 @@ POST /employees/pin-login → employee PIN authentication
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +17,7 @@ from app.models.stores import Employee
 from app.models.users import User
 from app.schemas.user_schema import (
     EmployeeCreate,
+    EmployeeUpdate,
     EmployeeResponse,
     EmployeePinLoginRequest,
     EmployeePinLoginResponse,
@@ -70,7 +71,10 @@ async def add_employee(
         name=payload.name,
         employee_code=payload.employee_code,
         pin=payload.pin,
+        phone=payload.phone,
+        email=payload.email,
         role=payload.role,
+        permissions={"items": payload.permissions} if payload.permissions else None,
     )
     db.add(employee)
     await db.flush()
@@ -93,3 +97,31 @@ async def list_employees(
         .order_by(Employee.created_at.desc())
     )
     return result.scalars().all()
+
+
+@router.put(
+    "/{employee_id}",
+    response_model=EmployeeResponse,
+    summary="Update employee details or active status",
+)
+async def update_employee(
+    employee_id: UUID,
+    payload: EmployeeUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Employee).where(Employee.id == employee_id))
+    employee = result.scalar_one_or_none()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    data = payload.model_dump(exclude_unset=True)
+    permissions = data.pop("permissions", None)
+    for field, value in data.items():
+        setattr(employee, field, value)
+
+    if permissions is not None:
+        employee.permissions = {"items": permissions}
+
+    await db.flush()
+    return employee
