@@ -119,7 +119,20 @@ class OrderComplete(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     """Move an order through its lifecycle."""
-    status: str = Field(..., examples=["sent_to_kitchen", "preparing", "ready", "completed", "paid"])
+    status: str = Field(
+        ...,
+        examples=[
+            "sent_to_kitchen",
+            "preparing",
+            "ready",
+            "served",
+            "handed_over",
+            "out_for_delivery",
+            "delivered",
+            "completed",
+            "paid",
+        ],
+    )
 
 
 class OrderAddItemRequest(BaseModel):

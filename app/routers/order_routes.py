@@ -334,7 +334,10 @@ async def api_create_payment(
     order_result = await db.execute(select(Order).where(Order.id == payload.order_id))
     if not order_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
-    return await create_payment(db, payload)
+    try:
+        return await create_payment(db, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # ── Refund ────────────────────────────────────────────────────────────────
